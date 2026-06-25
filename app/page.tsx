@@ -98,6 +98,7 @@ export default function Home() {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [loadingSignals, setLoadingSignals] = useState(true);
   const [savingSignal, setSavingSignal] = useState(false);
+  const [deletingId, setDeletingId] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
@@ -167,6 +168,30 @@ export default function Home() {
 
     setInput("");
     await loadSignals();
+  }
+
+  async function deleteSignal(id?: string) {
+    if (!id) return;
+
+    const confirmed = window.confirm("Ștergi acest semnal?");
+    if (!confirmed) return;
+
+    setDeletingId(id);
+    setErrorMessage("");
+
+    const { error } = await supabase.from("signals").delete().eq("id", id);
+
+    setDeletingId("");
+
+    if (error) {
+      console.error(error);
+      setErrorMessage("Nu am putut șterge semnalul din Supabase.");
+      return;
+    }
+
+    setSignals((currentSignals) =>
+      currentSignals.filter((signal) => signal.id !== id)
+    );
   }
 
   return (
@@ -280,7 +305,7 @@ export default function Home() {
                     key={signal.id || signal.raw}
                     className="rounded-xl border border-slate-800 bg-slate-950 p-5"
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-sm text-slate-400">
                           {signal.source}
@@ -288,15 +313,25 @@ export default function Home() {
                         <h3 className="text-2xl font-bold">{signal.pair}</h3>
                       </div>
 
-                      <span
-                        className={
-                          signal.direction.toUpperCase() === "LONG"
-                            ? "rounded-full bg-emerald-500/10 px-4 py-2 text-emerald-400"
-                            : "rounded-full bg-red-500/10 px-4 py-2 text-red-400"
-                        }
-                      >
-                        {signal.direction}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={
+                            signal.direction.toUpperCase() === "LONG"
+                              ? "rounded-full bg-emerald-500/10 px-4 py-2 text-emerald-400"
+                              : "rounded-full bg-red-500/10 px-4 py-2 text-red-400"
+                          }
+                        >
+                          {signal.direction}
+                        </span>
+
+                        <button
+                          onClick={() => deleteSignal(signal.id)}
+                          disabled={deletingId === signal.id}
+                          className="rounded-full border border-red-500/30 px-3 py-2 text-sm text-red-300 disabled:opacity-50"
+                        >
+                          {deletingId === signal.id ? "..." : "Șterge"}
+                        </button>
+                      </div>
                     </div>
 
                     <div className="mt-5 grid grid-cols-2 gap-3 text-sm">

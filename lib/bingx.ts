@@ -63,9 +63,10 @@ export async function createMarketOrder(
     "/openApi/swap/v2/trade/order",
     {
       symbol,
-      side,
-      type: "MARKET",
-      quantity,
+  side,
+  positionSide: side === "BUY" ? "LONG" : "SHORT",
+  type: "MARKET",
+  quantity,
     },
     "POST"
   );

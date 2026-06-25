@@ -2,7 +2,6 @@ import crypto from "crypto";
 
 const API_KEY = process.env.BINGX_API_KEY!;
 const SECRET_KEY = process.env.BINGX_SECRET_KEY!;
-
 const BASE_URL = "https://open-api.bingx.com";
 
 function createSignature(query: string) {
@@ -12,26 +11,62 @@ function createSignature(query: string) {
     .digest("hex");
 }
 
-export async function getAccountInfo() {
+async function request(
+  endpoint: string,
+  params: Record<string, string | number> = {},
+  method: "GET" | "POST" = "GET"
+) {
   const timestamp = Date.now();
 
-  const query = `timestamp=${timestamp}`;
+  const query = new URLSearchParams({
+    ...Object.fromEntries(
+      Object.entries(params).map(([key, value]) => [key, String(value)])
+    ),
+    timestamp: String(timestamp),
+  }).toString();
 
   const signature = createSignature(query);
 
-  const url =
-    `${BASE_URL}/openApi/swap/v2/user/balance?` +
-    `${query}&signature=${signature}`;
+  const url = `${BASE_URL}${endpoint}?${query}&signature=${signature}`;
 
   const response = await fetch(url, {
-    method: "GET",
+    method,
     headers: {
       "X-BX-APIKEY": API_KEY,
     },
     cache: "no-store",
   });
 
-  const data = await response.json();
+  return response.json();
+}
 
-  return data;
+export async function getAccountInfo() {
+  return request("/openApi/swap/v2/user/balance");
+}
+
+export async function getTicker(symbol: string) {
+  return request("/openApi/swap/v2/quote/price", {
+    symbol,
+  });
+}
+
+export async function getPositions() {
+  return request("/openApi/swap/v2/user/positions");
+}
+
+export async function createMarketOrder(
+  symbol: string,
+  side: "BUY" | "SELL",
+  quantity: number
+) {
+  return request(
+    "/openApi/swap/v2/trade/order",
+    {
+      symbol,
+      side,
+      type: "MARKET",
+      quantity,
+    },
+    "POST"
+  );
 }

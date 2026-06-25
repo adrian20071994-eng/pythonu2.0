@@ -75,7 +75,9 @@ export default function Home() {
           <h2 className="text-xl font-bold">Signals</h2>
 
           <nav className="mt-8 space-y-3 text-slate-300">
-            <p className="rounded-lg bg-slate-800 px-4 py-3 text-white">Dashboard</p>
+            <p className="rounded-lg bg-slate-800 px-4 py-3 text-white">
+              Dashboard
+            </p>
             <p className="px-4 py-3">Import manual</p>
             <p className="px-4 py-3">Telegram Bot</p>
             <p className="px-4 py-3">BingX API</p>
@@ -86,7 +88,9 @@ export default function Home() {
         <section className="flex-1 p-8">
           <header className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold">Telegram Signals Dashboard</h1>
+              <h1 className="text-3xl font-bold">
+                Telegram Signals Dashboard
+              </h1>
               <p className="mt-2 text-slate-400">
                 Lipești semnalul din Telegram, iar aplicația îl extrage automat.
               </p>
@@ -117,13 +121,15 @@ export default function Home() {
           </div>
 
           <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900 p-6">
-            <h2 className="text-xl font-semibold">Importă semnal prin Copy/Paste</h2>
+            <h2 className="text-xl font-semibold">
+              Importă semnal prin Copy/Paste
+            </h2>
 
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={`Lipește aici semnalul din Telegram...}
-              className="mt-5 min-h-72 w-full rounded-xl border border-slate-700 bg-slate-950 p-5 font-mono text-sm text-white outline-none placeholder:text-slate-500"
+              placeholder=""
+              className="mt-5 min-h-72 w-full rounded-xl border border-slate-700 bg-slate-950 p-5 font-mono text-sm text-white outline-none"
             />
 
             <div className="mt-5 flex items-center gap-4">
@@ -153,10 +159,15 @@ export default function Home() {
             ) : (
               <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-2">
                 {signals.map((signal, index) => (
-                  <div key={index} className="rounded-xl border border-slate-800 bg-slate-950 p-5">
+                  <div
+                    key={index}
+                    className="rounded-xl border border-slate-800 bg-slate-950 p-5"
+                  >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-slate-400">{signal.source}</p>
+                        <p className="text-sm text-slate-400">
+                          {signal.source}
+                        </p>
                         <h3 className="text-2xl font-bold">{signal.pair}</h3>
                       </div>
 
@@ -187,13 +198,13 @@ export default function Home() {
                       <p className="rounded-lg bg-slate-900 p-3">
                         <span className="text-slate-400">TP1</span>
                         <br />
-                        {signal.tp1}
+                        {signal.tp1 || "-"}
                       </p>
 
                       <p className="rounded-lg bg-slate-900 p-3">
                         <span className="text-slate-400">TP2</span>
                         <br />
-                        {signal.tp2}
+                        {signal.tp2 || "-"}
                       </p>
                     </div>
 

@@ -122,27 +122,7 @@ export default function Home() {
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={`Lipește aici semnalul din Telegram...
-
-🚨 SIGNAL A
-
-Ora semnal: 2026-06-25 20:30:37
-
-Pair: SOL/USDT:USDT
-Direction: SHORT
-Score: 8
-
-Entry: 66.9217
-SL: 69.9601
-TP1: 65.5945
-TP2: 64.2673
-
-ATR: 0.8848
-ATR%: 1.32%
-Funding Rate: -0.0047%
-Open Interest: $0
-
-Reasons: 4H bearish, 1H bearish, 30M bearish`}
+              placeholder={`Lipește aici semnalul din Telegram...}
               className="mt-5 min-h-72 w-full rounded-xl border border-slate-700 bg-slate-950 p-5 font-mono text-sm text-white outline-none placeholder:text-slate-500"
             />
 

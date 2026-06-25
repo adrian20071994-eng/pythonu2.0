@@ -19,6 +19,7 @@ type Signal = {
   openInterest: string;
   reasons: string;
   source: "Manual" | "Telegram";
+  createdAt?: string;
 };
 
 function extractValue(text: string, label: string) {
@@ -62,46 +63,65 @@ function cleanNumber(value: string) {
   return Number.isNaN(number) ? null : number;
 }
 
+function mapDatabaseSignal(item: any): Signal {
+  return {
+    id: item.id,
+    raw: item.raw_text || "",
+    pair: item.pair || "",
+    direction: item.direction || "",
+    score: item.score !== null && item.score !== undefined ? String(item.score) : "",
+    entry: item.entry !== null && item.entry !== undefined ? String(item.entry) : "",
+    sl: item.sl !== null && item.sl !== undefined ? String(item.sl) : "",
+    tp1: item.tp1 !== null && item.tp1 !== undefined ? String(item.tp1) : "",
+    tp2: item.tp2 !== null && item.tp2 !== undefined ? String(item.tp2) : "",
+    atr: item.atr !== null && item.atr !== undefined ? String(item.atr) : "",
+    atrPercent:
+      item.atr_percent !== null && item.atr_percent !== undefined
+        ? String(item.atr_percent)
+        : "",
+    fundingRate:
+      item.funding_rate !== null && item.funding_rate !== undefined
+        ? String(item.funding_rate)
+        : "",
+    openInterest:
+      item.open_interest !== null && item.open_interest !== undefined
+        ? String(item.open_interest)
+        : "",
+    reasons: item.reasons || "",
+    source: item.source === "telegram" ? "Telegram" : "Manual",
+    createdAt: item.created_at,
+  };
+}
+
 export default function Home() {
   const [input, setInput] = useState("");
   const [signals, setSignals] = useState<Signal[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loadingSignals, setLoadingSignals] = useState(true);
+  const [savingSignal, setSavingSignal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     loadSignals();
   }, []);
 
   async function loadSignals() {
+    setLoadingSignals(true);
+    setErrorMessage("");
+
     const { data, error } = await supabase
       .from("signals")
       .select("*")
       .order("created_at", { ascending: false });
 
     if (error) {
-      alert("Nu pot încărca semnalele din baza de date.");
       console.error(error);
+      setErrorMessage("Nu pot încărca semnalele din Supabase.");
+      setLoadingSignals(false);
       return;
     }
 
-    const mappedSignals: Signal[] = (data || []).map((item) => ({
-      id: item.id,
-      raw: item.raw_text || "",
-      pair: item.pair || "",
-      direction: item.direction || "",
-      score: item.score ? String(item.score) : "",
-      entry: item.entry ? String(item.entry) : "",
-      sl: item.sl ? String(item.sl) : "",
-      tp1: item.tp1 ? String(item.tp1) : "",
-      tp2: item.tp2 ? String(item.tp2) : "",
-      atr: item.atr ? String(item.atr) : "",
-      atrPercent: item.atr_percent ? String(item.atr_percent) : "",
-      fundingRate: item.funding_rate ? String(item.funding_rate) : "",
-      openInterest: item.open_interest ? String(item.open_interest) : "",
-      reasons: item.reasons || "",
-      source: item.source === "telegram" ? "Telegram" : "Manual",
-    }));
-
-    setSignals(mappedSignals);
+    setSignals((data || []).map(mapDatabaseSignal));
+    setLoadingSignals(false);
   }
 
   async function importSignal() {
@@ -117,7 +137,8 @@ export default function Home() {
       return;
     }
 
-    setLoading(true);
+    setSavingSignal(true);
+    setErrorMessage("");
 
     const { error } = await supabase.from("signals").insert({
       source: "manual",
@@ -136,11 +157,11 @@ export default function Home() {
       raw_text: input,
     });
 
-    setLoading(false);
+    setSavingSignal(false);
 
     if (error) {
-      alert("Nu am putut salva semnalul în Supabase.");
       console.error(error);
+      setErrorMessage("Nu am putut salva semnalul în Supabase.");
       return;
     }
 
@@ -172,14 +193,23 @@ export default function Home() {
                 Telegram Signals Dashboard
               </h1>
               <p className="mt-2 text-slate-400">
-                Lipești semnalul din Telegram, iar aplicația îl salvează în baza de date.
+                Lipești semnalul din Telegram, iar aplicația îl salvează în Supabase.
               </p>
             </div>
 
-            <div className="rounded-full bg-emerald-500/10 px-4 py-2 text-emerald-400">
-              Supabase conectat
-            </div>
+            <button
+              onClick={loadSignals}
+              className="rounded-lg border border-slate-700 px-4 py-2 text-slate-300"
+            >
+              Reîncarcă
+            </button>
           </header>
+
+          {errorMessage && (
+            <div className="mt-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-red-300">
+              {errorMessage}
+            </div>
+          )}
 
           <div className="mt-8 grid grid-cols-3 gap-4">
             <div className="rounded-xl bg-slate-900 p-5">
@@ -217,10 +247,10 @@ export default function Home() {
             <div className="mt-5 flex items-center gap-4">
               <button
                 onClick={importSignal}
-                disabled={loading}
+                disabled={savingSignal}
                 className="rounded-lg bg-emerald-500 px-6 py-3 font-semibold text-slate-950 disabled:opacity-50"
               >
-                {loading ? "Se salvează..." : "Importă semnal"}
+                {savingSignal ? "Se salvează..." : "Importă semnal"}
               </button>
 
               <button
@@ -235,7 +265,11 @@ export default function Home() {
           <div className="mt-8 rounded-xl bg-slate-900 p-6">
             <h2 className="text-xl font-semibold">Semnale importate</h2>
 
-            {signals.length === 0 ? (
+            {loadingSignals ? (
+              <p className="mt-6 rounded-lg border border-dashed border-slate-700 p-6 text-slate-400">
+                Se încarcă semnalele...
+              </p>
+            ) : signals.length === 0 ? (
               <p className="mt-6 rounded-lg border border-dashed border-slate-700 p-6 text-slate-400">
                 Nu ai importat încă niciun semnal.
               </p>
@@ -269,13 +303,13 @@ export default function Home() {
                       <p className="rounded-lg bg-slate-900 p-3">
                         <span className="text-slate-400">Entry</span>
                         <br />
-                        {signal.entry}
+                        {signal.entry || "-"}
                       </p>
 
                       <p className="rounded-lg bg-slate-900 p-3">
                         <span className="text-slate-400">SL</span>
                         <br />
-                        {signal.sl}
+                        {signal.sl || "-"}
                       </p>
 
                       <p className="rounded-lg bg-slate-900 p-3">
@@ -321,6 +355,12 @@ export default function Home() {
                       <p className="text-slate-400">Reasons</p>
                       <p className="mt-2">{signal.reasons || "-"}</p>
                     </div>
+
+                    {signal.createdAt && (
+                      <p className="mt-4 text-xs text-slate-500">
+                        Salvat: {new Date(signal.createdAt).toLocaleString()}
+                      </p>
+                    )}
 
                     <button className="mt-5 w-full rounded-lg bg-blue-500 px-4 py-3 font-semibold">
                       Pregătește execuția pe BingX

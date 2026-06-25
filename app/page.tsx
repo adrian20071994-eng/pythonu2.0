@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 type Signal = {
+  id?: string;
   raw: string;
   pair: string;
   direction: string;
@@ -47,11 +49,62 @@ function parseSignal(text: string): Signal {
   };
 }
 
+function cleanNumber(value: string) {
+  if (!value) return null;
+
+  const cleaned = value
+    .replace("$", "")
+    .replace("%", "")
+    .replaceAll(",", "")
+    .trim();
+
+  const number = Number(cleaned);
+  return Number.isNaN(number) ? null : number;
+}
+
 export default function Home() {
   const [input, setInput] = useState("");
   const [signals, setSignals] = useState<Signal[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  function importSignal() {
+  useEffect(() => {
+    loadSignals();
+  }, []);
+
+  async function loadSignals() {
+    const { data, error } = await supabase
+      .from("signals")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      alert("Nu pot încărca semnalele din baza de date.");
+      console.error(error);
+      return;
+    }
+
+    const mappedSignals: Signal[] = (data || []).map((item) => ({
+      id: item.id,
+      raw: item.raw_text || "",
+      pair: item.pair || "",
+      direction: item.direction || "",
+      score: item.score ? String(item.score) : "",
+      entry: item.entry ? String(item.entry) : "",
+      sl: item.sl ? String(item.sl) : "",
+      tp1: item.tp1 ? String(item.tp1) : "",
+      tp2: item.tp2 ? String(item.tp2) : "",
+      atr: item.atr ? String(item.atr) : "",
+      atrPercent: item.atr_percent ? String(item.atr_percent) : "",
+      fundingRate: item.funding_rate ? String(item.funding_rate) : "",
+      openInterest: item.open_interest ? String(item.open_interest) : "",
+      reasons: item.reasons || "",
+      source: item.source === "telegram" ? "Telegram" : "Manual",
+    }));
+
+    setSignals(mappedSignals);
+  }
+
+  async function importSignal() {
     if (!input.trim()) {
       alert("Lipește un semnal înainte să îl imporți.");
       return;
@@ -64,8 +117,35 @@ export default function Home() {
       return;
     }
 
-    setSignals([signal, ...signals]);
+    setLoading(true);
+
+    const { error } = await supabase.from("signals").insert({
+      source: "manual",
+      pair: signal.pair,
+      direction: signal.direction,
+      score: cleanNumber(signal.score),
+      entry: cleanNumber(signal.entry),
+      sl: cleanNumber(signal.sl),
+      tp1: cleanNumber(signal.tp1),
+      tp2: cleanNumber(signal.tp2),
+      atr: cleanNumber(signal.atr),
+      atr_percent: cleanNumber(signal.atrPercent),
+      funding_rate: cleanNumber(signal.fundingRate),
+      open_interest: cleanNumber(signal.openInterest),
+      reasons: signal.reasons,
+      raw_text: input,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      alert("Nu am putut salva semnalul în Supabase.");
+      console.error(error);
+      return;
+    }
+
     setInput("");
+    await loadSignals();
   }
 
   return (
@@ -92,12 +172,12 @@ export default function Home() {
                 Telegram Signals Dashboard
               </h1>
               <p className="mt-2 text-slate-400">
-                Lipești semnalul din Telegram, iar aplicația îl extrage automat.
+                Lipești semnalul din Telegram, iar aplicația îl salvează în baza de date.
               </p>
             </div>
 
             <div className="rounded-full bg-emerald-500/10 px-4 py-2 text-emerald-400">
-              Parser activ
+              Supabase conectat
             </div>
           </header>
 
@@ -116,7 +196,9 @@ export default function Home() {
 
             <div className="rounded-xl bg-slate-900 p-5">
               <p className="text-slate-400">Telegram</p>
-              <p className="mt-2 text-3xl font-bold">0</p>
+              <p className="mt-2 text-3xl font-bold">
+                {signals.filter((signal) => signal.source === "Telegram").length}
+              </p>
             </div>
           </div>
 
@@ -135,9 +217,10 @@ export default function Home() {
             <div className="mt-5 flex items-center gap-4">
               <button
                 onClick={importSignal}
-                className="rounded-lg bg-emerald-500 px-6 py-3 font-semibold text-slate-950"
+                disabled={loading}
+                className="rounded-lg bg-emerald-500 px-6 py-3 font-semibold text-slate-950 disabled:opacity-50"
               >
-                Importă semnal
+                {loading ? "Se salvează..." : "Importă semnal"}
               </button>
 
               <button
@@ -158,9 +241,9 @@ export default function Home() {
               </p>
             ) : (
               <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-2">
-                {signals.map((signal, index) => (
+                {signals.map((signal) => (
                   <div
-                    key={index}
+                    key={signal.id || signal.raw}
                     className="rounded-xl border border-slate-800 bg-slate-950 p-5"
                   >
                     <div className="flex items-center justify-between">
